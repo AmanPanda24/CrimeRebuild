@@ -1,0 +1,76 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "case_base.html" %}
+{% from "_macros.html" import sev, src %}
+{% block title %}Timeline - {{ case['name'] }}{% endblock %}
+{% block content %}
+<div class="page pt-3">
+  <form class="filters" method="get" id="filters">
+    {% if focus_alert %}<input type="hidden" name="alert" value="{{ focus_alert['id'] }}"><input type="hidden" name="ctx" value="{{ ctx }}">{% endif %}
+    <div class="row g-2 align-items-end">
+      <div class="col-lg-3"><label class="form-label" for="q">Search</label>
+        <input class="form-control form-control-sm" id="q" name="q" value="{{ f.q }}" placeholder="file, user, URL, process..."></div>
+      <div class="col-6 col-lg-2"><label class="form-label" for="source">Source</label>
+        <select class="form-select form-select-sm" id="source" name="source" data-autosubmit>
+          <option value="">All sources</option>{% for x in choices.sources %}<option {{ 'selected' if f.source == x }}>{{ x }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-2"><label class="form-label" for="action">Event type</label>
+        <select class="form-select form-select-sm" id="action" name="action" data-autosubmit>
+          <option value="">All events</option>{% for x in choices.actions %}<option {{ 'selected' if f.action == x }}>{{ x }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-2"><label class="form-label" for="user">Account</label>
+        <select class="form-select form-select-sm" id="user" name="user" data-autosubmit>
+          <option value="">All accounts</option>{% for x in choices.users %}<option {{ 'selected' if f.user == x }}>{{ x }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-3 d-flex align-items-center gap-2">
+        <div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="flagged" name="flagged" value="1" {{ 'checked' if f.flagged }} data-autosubmit>
+          <label class="form-check-label" for="flagged">Flagged only</label></div>
+        <button class="btn btn-cyan btn-sm ms-auto">Apply</button>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('main.timeline_page', case_id=case['id']) }}">Clear</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+    {% if focus_alert %}
+      <span class="sev sev-{{ focus_alert['severity'] }}">{{ focus_alert['severity'] }}</span>
+      <strong>{{ focus_alert['title'] }}</strong>
+      <span class="muted">showing {{ ctx }} min of context around its {{ focus_alert['event_ids']|length }} linked events</span>
+      {% if ctx|int > 0 %}<a href="{{ url_for('main.timeline_page', case_id=case['id'], alert=focus_alert['id'], ctx=0) }}">only linked events</a>
+      {% else %}<a href="{{ url_for('main.timeline_page', case_id=case['id'], alert=focus_alert['id'], ctx=10) }}">add context</a>{% endif %}
+    {% else %}
+      <span class="muted">{{ '{:,}'.format(total) }} event{{ '' if total == 1 else 's' }}{% if pages > 1 %} &middot; page {{ page }} of {{ pages }}{% endif %}</span>
+    {% endif %}
+    <a class="ms-auto btn btn-ghost btn-sm" href="{{ url_for('main.export_csv', case_id=case['id']) }}"><i class="bi bi-download me-1"></i>Export CSV</a>
+  </div>
+
+  <div class="tl" role="feed" aria-label="Reconstructed timeline">
+    {% for it in items %}
+      {% set r = it.row %}{% set m = action_meta(r['action']) %}
+      {% if it.new_day %}<div class="tl-day">{{ r['ts']|dt('%A, %d %B %Y') }}</div>{% endif %}
+      {% if it.gap %}<div class="tl-gap">{{ it.gap|dur }} with no recorded activity</div>{% endif %}
+      <article class="tl-item {% if it.flag %}flag flag-{{ it.flag.severity }}{% endif %} {% if it.focus %}focus{% endif %}" id="ev{{ r['id'] }}">
+        <time class="tl-time" datetime="{{ r['ts'].isoformat() }}">{{ r['ts']|dt('%H:%M:%S') }}</time>
+        <div class="tl-rail"><span class="tl-dot tone-{{ m[2] }}"><i class="bi bi-{{ m[1] }}"></i></span></div>
+        <div class="tl-card tone-{{ m[2] }}">
+          <div class="head">
+            <strong>{{ r['action'] }}</strong>
+            {% if r['user'] %}<span class="chip"><i class="bi bi-person"></i>{{ r['user'] }}</span>{% endif %}
+            {{ src(r['source']) }}
+            {% if it.flag %}<a class="flag-link" href="{{ url_for('main.alerts_page', case_id=case['id']) }}#alert-{{ it.flag.alerts[0] }}"><i class="bi bi-flag-fill me-1"></i>{{ it.flag.severity }} alert</a>{% endif %}
+          </div>
+          {% if r['target'] %}<div class="tl-target mono">{{ r['target'] }}{% if r['dest'] and r['action'] == 'File Copied' %} <i class="bi bi-arrow-right mx-1"></i>{{ r['dest'] }}{% endif %}</div>{% endif %}
+          {% set show_dest = r['dest'] and r['action'] != 'File Copied' and r['dest'] not in r['details'] %}
+          {% if r['details'] or show_dest %}<div class="tl-detail">{{ r['details'] }}{% if show_dest %}{{ ' ' if r['details'] }}[{{ r['dest'] }}]{% endif %}</div>{% endif %}
+        </div>
+      </article>
+    {% else %}
+      <div class="pane text-center py-5 mt-3"><p class="muted mb-0">No events match these filters.</p></div>
+    {% endfor %}
+  </div>
+
+  {% if pages > 1 %}
+  <nav class="pager" aria-label="Timeline pages">
+    {% if page > 1 %}<a href="{{ url_for('main.timeline_page', case_id=case['id'], page=page-1, **query) }}">Previous</a>{% endif %}
+    <span>Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}<a href="{{ url_for('main.timeline_page', case_id=case['id'], page=page+1, **query) }}">Next</a>{% endif %}
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

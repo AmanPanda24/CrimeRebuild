@@ -1,0 +1,42 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "case_base.html" %}
+{% from "_macros.html" import sev, src %}
+{% block title %}Alerts - {{ case['name'] }}{% endblock %}
+{% block content %}
+<div class="page pt-3">
+  <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+    <div><h2 class="page-title">Suspicious activity</h2>
+      <p class="lead-sm mb-0">Each alert lists the exact events that triggered it. Open it in the timeline to see what happened just before and after.</p></div>
+    <div class="ms-auto d-flex gap-2">{% for lv in ['critical','high','medium','low'] %}{% if b['summary']['severity_counts'][lv] %}<span class="sev sev-{{ lv }}">{{ b['summary']['severity_counts'][lv] }} {{ lv }}</span>{% endif %}{% endfor %}</div>
+  </div>
+  {% for row in rows %}{% set a = row.alert %}
+  <section class="alert-card s-{{ a['severity'] }}" id="alert-{{ a['id'] }}">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      {{ sev(a['severity']) }}
+      <h3>{{ a['title'] }}</h3>
+      <span class="chip ms-1"><i class="bi bi-shield-shaded"></i>{{ a['rule_title'] }}</span>
+      <span class="chip" title="MITRE ATT&amp;CK reference"><i class="bi bi-bullseye"></i>{{ a['mitre'] }}</span>
+      <span class="ms-auto muted">+{{ a['points'] }} risk points</span>
+    </div>
+    <p class="desc">{{ a['description'] }}</p>
+    <div class="table-responsive">
+      <table class="table table-dark-lite alert-events">
+        <thead><tr><th>Time</th><th>Event</th><th>Account</th><th>Detail</th><th>Source</th></tr></thead>
+        <tbody>{% for e in row.events %}
+          <tr><td class="mono">{{ e['ts']|dt('%H:%M:%S') }}</td>
+              <td><i class="bi bi-{{ action_meta(e['action'])[1] }} me-1" style="color:var(--tone-{{ action_meta(e['action'])[2] }})"></i>{{ e['action'] }}</td>
+              <td>{{ e['user'] }}</td>
+              <td class="mono">{{ ((e['target'] ~ (' -> ' ~ e['dest'] if e['dest'] and e['action'] == 'File Copied' else '')) or e['details'])|short(80) }}</td>
+              <td>{{ src(e['source']) }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if row.more %}<div class="form-text">+{{ row.more }} more linked events</div>{% endif %}
+    <a class="btn btn-ghost btn-sm mt-2" href="{{ url_for('main.timeline_page', case_id=case['id'], alert=a['id']) }}"><i class="bi bi-clock-history me-1"></i>View in timeline</a>
+  </section>
+  {% else %}
+  <div class="pane text-center py-5"><i class="bi bi-check-circle ok" style="font-size:2rem"></i>
+    <p class="mt-2 mb-0">None of the five detection rules fired on this evidence.<br><span class="muted">You can tune the thresholds under Detection settings.</span></p></div>
+  {% endfor %}
+</div>
+{% endblock %}

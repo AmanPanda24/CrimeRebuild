@@ -1,0 +1,12 @@
+{# Created by: Aman Kumar Panda #}
+{% macro sev(level) -%}
+  <span class="sev sev-{{ level }}">{{ level }}</span>
+{%- endmacro %}
+
+{% macro src(name) -%}
+  <span class="src src-{{ name|lower|replace(' ', '-') }}">{{ name }}</span>
+{%- endmacro %}
+
+{% macro risk_chip(level) -%}
+  <span class="sev sev-{{ level }}">{{ level }} risk</span>
+{%- endmacro %}

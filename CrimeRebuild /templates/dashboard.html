@@ -1,0 +1,132 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "case_base.html" %}
+{% from "_macros.html" import sev, src, risk_chip %}
+{% block title %}{{ case['name'] }}{% endblock %}
+{% block content %}
+{% set s = b['summary'] %}
+{% if not b['df']|length %}
+<div class="pane empty-state mt-4">
+  <i class="bi bi-cloud-arrow-up"></i>
+  <h2>This case is empty</h2>
+  <p class="muted">Nothing is shown until you add evidence. Upload one ZIP or any mix of files and the timeline,
+    alerts and risk score will appear here.</p>
+  <p class="empty-formats"><span>.zip</span><span>.csv</span><span>.xlsx</span><span>.json</span><span>.evtx</span><span>SQLite</span><span>FTK / Autopsy exports</span></p>
+  <a class="btn btn-cyan" href="{{ url_for('main.evidence_page', case_id=case['id']) }}"><i class="bi bi-upload me-1"></i>Upload evidence</a>
+</div>
+{% else %}
+<div class="row g-3 mt-1">
+  <div class="col-lg-4">
+    <div class="pane">
+      <h2><i class="bi bi-speedometer2"></i>Risk score</h2>
+      <div class="risk-gauge"><canvas id="gauge" aria-label="Risk score {{ case['risk_score'] }} out of 100"></canvas>
+        <div class="center"><div class="num">{{ case['risk_score'] }}</div><div class="of">out of 100</div></div></div>
+      <div class="risk-level">{{ risk_chip(case['risk_level']) }}</div>
+      <div class="sev-tally">
+        {% for lv in ['critical','high','medium','low'] %}
+          <div class="t-{{ lv }}"><b>{{ s['severity_counts'][lv] }}</b><small>{{ lv }}</small></div>
+        {% endfor %}
+      </div>
+      <p class="form-text mt-3 mb-0">Sum of alert severity points (low 10, medium 20, high 35, critical 50), capped at 100.</p>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="pane">
+      <h2><i class="bi bi-journal-richtext"></i>Incident summary</h2>
+      <div class="headline">{{ s['headline'] }}</div>
+      <p class="mb-2">{{ s['overview'] }}</p>
+      {% if s['sequence_text'] %}<p class="mb-0" style="color:#d4d4d8">{{ s['sequence_text'] }}{% if s['sequence_extra'] %} <span class="muted">(+{{ s['sequence_extra'] }} more steps in the timeline)</span>{% endif %}</p>{% endif %}
+      <dl class="facts">
+        {% for k, v in s['facts'] %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}
+      </dl>
+      <div class="kpis">
+        <div class="kpi"><b>{{ '{:,}'.format(b['df']|length) }}</b><small>events merged</small></div>
+        <div class="kpi"><b>{{ b['sources']|length }}</b><small>evidence sources</small></div>
+        <div class="kpi"><b>{{ b['alerts']|length }}</b><small>alerts</small></div>
+        <div class="kpi"><b>{{ b['users']|length }}</b><small>accounts</small></div>
+        <div class="kpi"><b>{{ (b['tl'].end - b['tl'].start).total_seconds()|dur }}</b><small>time covered</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if s['sequence'] %}
+<div class="pane mt-3">
+  <h2><i class="bi bi-diagram-3"></i>Reconstructed sequence<small>the events behind the most serious alerts, in order</small></h2>
+  <div class="seq" role="list">
+    {% for st in s['sequence'] %}
+      {% set m = action_meta(st['action']) %}
+      <a class="seq-step tone-{{ m[2] }} flagged" role="listitem" href="{{ url_for('main.timeline_page', case_id=case['id'], focus=st['id']) }}#ev{{ st['id'] }}" style="color:inherit">
+        <div class="seq-dot"><i class="bi bi-{{ m[1] }}"></i></div>
+        <div class="seq-time">{{ st['ts']|dt('%H:%M:%S') }}</div>
+        <div class="seq-text">{{ st['action'] }}{% if st['count'] > 1 %} &times;{{ st['count'] }}{% endif %}<br><span class="muted">{{ (basename(st['target']) if st['action'].startswith('File') else (st['target']|host if st['category'] == 'web' else st['target']))|short(34) }}{% if st['user'] and not st['action'].startswith('USB') %} &middot; {{ st['user'] }}{% endif %}</span></div>
+        <div class="seq-src">{{ src(st['source']) }}</div>
+      </a>
+    {% endfor %}
+    {% if s['sequence_extra'] %}<div class="seq-more">+{{ s['sequence_extra'] }} more steps</div>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mt-0">
+  <div class="col-lg-8">
+    <div class="pane">
+      <h2><i class="bi bi-bar-chart-line"></i>Activity graph<small>events per {{ b['activity']['bucket'] }}, by source</small></h2>
+      <div class="chart-box"><canvas id="activity" aria-label="Events over time by evidence source"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="pane">
+      <h2><i class="bi bi-pie-chart"></i>Evidence sources</h2>
+      <div class="chart-box sm"><canvas id="sources" aria-label="Events by evidence source"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-0 mb-4">
+  <div class="col-lg-4">
+    <div class="pane">
+      <h2><i class="bi bi-people"></i>User activity</h2>
+      {% if b['users'] %}<div class="chart-box sm"><canvas id="users" aria-label="Events per account"></canvas></div>
+      {% else %}<p class="muted mb-0">No account names were recorded in this evidence.</p>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="pane">
+      <h2><i class="bi bi-exclamation-triangle"></i>Alerts<small><a href="{{ url_for('main.alerts_page', case_id=case['id']) }}">all</a></small></h2>
+      {% for a in b['alerts'][:6] %}
+      <a class="mini-alert" href="{{ url_for('main.timeline_page', case_id=case['id'], alert=a['id']) }}">
+        <div>{{ sev(a['severity']) }}</div>
+        <div><div class="mini-title">{{ a['title'] }}</div>
+          <div class="mini-sub">{{ a['first_ts'][11:] }} &middot; {{ a['rule_title'] }}</div></div>
+      </a>
+      {% else %}<p class="muted mb-0"><i class="bi bi-check-circle ok me-1"></i>None of the five detection rules fired.</p>{% endfor %}
+      {% if b['alerts']|length > 6 %}<div class="mini-sub mt-2">+{{ b['alerts']|length - 6 }} more on the Alerts tab</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="pane">
+      <h2><i class="bi bi-shield-check"></i>Evidence<small><a href="{{ url_for('main.evidence_page', case_id=case['id']) }}">manage</a></small></h2>
+      {% for e in b['evidence'] %}
+      <div class="ev-row"><span class="src src-{{ SOURCES.get(e['kind'], '')|lower|replace(' ','-') }}">{{ SOURCES.get(e['kind'], 'unknown') }}</span>
+        <span class="ev-name" title="{{ e['filename'] }}">{{ e['filename'] }}</span>
+        <span class="muted">{{ e['rows_parsed'] }}</span></div>
+      {% endfor %}
+      <div class="form-text mt-2">SHA-256 recorded for every file at intake.</div>
+    </div>
+  </div>
+</div>
+{% if s['recommendations'] %}
+<div class="pane mb-4">
+  <h2><i class="bi bi-list-check"></i>Suggested next steps</h2>
+  <ul class="mb-0 ps-3">{% for r in s['recommendations'] %}<li class="mb-1">{{ r }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if b['df']|length %}
+<script id="chart-data" type="application/json">{{ chart|tojson }}</script>
+<script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endif %}
+{% endblock %}

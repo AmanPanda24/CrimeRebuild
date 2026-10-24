@@ -1,0 +1,159 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "base.html" %}
+{% block title %}How it works{% endblock %}
+{% block content %}
+<div class="page about">
+
+  <section class="about-hero">
+    <span class="eyebrow">How it works</span>
+    <h1>From scattered files to one clear story</h1>
+    <p>Upload evidence from any forensic tool. CrimeRebuild converts everything to one format, puts every event on a single
+      timeline, flags suspicious behaviour and writes the report. Nothing is guessed: every finding points back to the events behind it.</p>
+    <div class="flow-strip" aria-label="Pipeline overview">
+      {% for label in ['Upload', 'Convert to JSON', 'Parse', 'Timeline', 'Detect', 'Report'] %}
+        <span>{{ label }}</span>{% if not loop.last %}<i class="bi bi-chevron-right" aria-hidden="true"></i>{% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- six stages -->
+  <section class="about-sec">
+    <h2 class="sec-title">The six stages</h2>
+    <div class="row g-3">
+      {% set stages = [
+        ('cloud-arrow-up', 'Upload and preserve', 'Upload a ZIP or any mix of files, or collect live on Windows. A ZIP is unpacked automatically. Each file is copied read-only and fingerprinted with SHA-256, so any later change is detectable.', 'evidence.py, converter.py'),
+        ('filetype-json', 'Convert to JSON', 'Whatever the extension (CSV, Excel, .evtx, SQLite, FTK or Autopsy exports), the file is turned into one common JSON document. The original is never touched.', 'converter.py'),
+        ('braces', 'Parse and normalise', 'The JSON is read into one schema: time, source, action, user, target and details. All times are converted to UTC so different sources can be compared.', 'parsers.py'),
+        ('clock-history', 'Rebuild the timeline', 'Every event from every source is merged, sorted and de-duplicated. Bursts of activity, quiet gaps and the full life of each file are worked out from the merged list.', 'timeline.py'),
+        ('shield-exclamation', 'Detect suspicious activity', 'Five rules look for known attack patterns. Each alert keeps the exact events that triggered it, so you can jump straight to that moment.', 'detector.py'),
+        ('file-earmark-pdf', 'Dashboard and report', 'See the risk score, a plain-language summary and the reconstructed sequence, then export a PDF with findings, timeline, hashes and chain of custody.', 'views.py, report.py')] %}
+      {% for icon, title, text, where in stages %}
+      <div class="col-md-6 col-xl-4">
+        <article class="step-card">
+          <div class="step-top"><span class="step-num">{{ loop.index }}</span><i class="bi bi-{{ icon }}" aria-hidden="true"></i></div>
+          <h3>{{ title }}</h3>
+          <p>{{ text }}</p>
+          <span class="mono step-file">{{ where }}</span>
+        </article>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- accepted files -->
+  <section class="about-sec">
+    <h2 class="sec-title">What you can upload <small>all at once, in any mix</small></h2>
+    <div class="row g-3">
+      {% set kinds = [
+        ('file-zip', 'ZIP archives', ['.zip'], 'Unpacked safely, then every file inside is processed.'),
+        ('table', 'Tables and exports', ['.csv', '.tsv', '.xlsx', '.json'], 'Event logs, login, USB and file-access records.'),
+        ('windows', 'Windows event logs', ['.evtx'], 'Logons, file access, process starts, cleared logs.'),
+        ('globe2', 'Browser history', ['History', 'places.sqlite'], 'Chrome, Edge, Brave and Firefox visits and downloads.'),
+        ('hdd', 'FTK Imager and Autopsy', ['file lists', 'autopsy.db'], 'Created, Modified and Accessed times become timeline events.'),
+        ('slash-circle', 'Not read directly', ['.E01', '.AD1', '.dd', '.pcap'], 'Disk images and captures: export from the tool first.')] %}
+      {% for icon, title, exts, text in kinds %}
+      <div class="col-md-6 col-xl-4">
+        <div class="kind-card {{ 'kind-off' if loop.last }}">
+          <i class="bi bi-{{ icon }}" aria-hidden="true"></i>
+          <div><h3>{{ title }}</h3>
+            <div class="ext-row">{% for e in exts %}<span>{{ e }}</span>{% endfor %}</div>
+            <p>{{ text }}</p></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- worked example -->
+  <section class="about-sec">
+    <div class="row g-4 align-items-stretch">
+      <div class="col-lg-6">
+        <h2 class="sec-title">One timeline from five sources</h2>
+        <p class="muted">An example: five different files, each telling only part of the story.</p>
+        <ol class="mini-timeline">
+          {% set ex = [
+            ('10:01', 'USB device connected', 'USB log', 'usb'),
+            ('10:03', 'Salaries spreadsheet opened', 'Event log', 'event-log'),
+            ('10:05', 'File copied to drive E:', 'File log', 'file-log'),
+            ('10:07', 'Webmail opened in Chrome', 'Browser history', 'browser'),
+            ('10:09', 'Original file deleted', 'File log', 'file-log')] %}
+          {% for t, what, src, key in ex %}
+          <li style="--c: var(--src-{{ key }})"><time>{{ t }}</time><div><strong>{{ what }}</strong><span>{{ src }}</span></div></li>
+          {% endfor %}
+        </ol>
+      </div>
+      <div class="col-lg-6">
+        <h2 class="sec-title">What gets flagged</h2>
+        <p class="muted">Five rules, each mapped to a recognised attack technique.</p>
+        {% set rules = {
+          'usb_exfiltration': 'Sensitive files copied to a USB drive while it was connected.',
+          'mass_deletion': 'Many files removed in a short burst, or deleted right after being copied.',
+          'brute_force': 'A run of failed logins in a short window.',
+          'off_hours_login': 'A login at an unusual hour, such as just after midnight.',
+          'file_tampering': 'System files altered or the audit log cleared to hide traces.'} %}
+        <ul class="rule-list">
+          {% for key, text in rules.items() %}
+          <li><div><strong>{{ RULE_INFO[key][0] }}</strong><span>{{ text }}</span></div><code>{{ RULE_INFO[key][1].split(' ')[0] }}</code></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- risk score -->
+  <section class="about-sec">
+    <div class="pane">
+      <h2><i class="bi bi-speedometer2"></i>How the risk score works</h2>
+      <p class="muted">Each alert adds points by severity. The total is capped at 100. The score is a triage aid, not a verdict, and the alert list explains every point.</p>
+      <div class="row g-2 mb-3">
+        {% for lv, pts in [('low', 10), ('medium', 20), ('high', 35), ('critical', 50)] %}
+        <div class="col-6 col-md-3"><div class="pts t-{{ lv }}"><b>+{{ pts }}</b><span>{{ lv }} alert</span></div></div>
+        {% endfor %}
+      </div>
+      <div class="scale" role="img" aria-label="Risk levels: Low under 25, Medium 25 to 49, High 50 to 74, Critical 75 and above">
+        <div class="seg t-low" style="flex:25"><b>Low</b><small>0 to 24</small></div>
+        <div class="seg t-medium" style="flex:25"><b>Medium</b><small>25 to 49</small></div>
+        <div class="seg t-high" style="flex:25"><b>High</b><small>50 to 74</small></div>
+        <div class="seg t-critical" style="flex:25"><b>Critical</b><small>75 to 100</small></div>
+      </div>
+      <p class="form-text mt-2 mb-0">Example: USB exfiltration (critical, 50) plus deletion after copy (high, 35) = 85, Critical.</p>
+    </div>
+  </section>
+
+  <!-- trust, limits, project -->
+  <section class="about-sec">
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <div class="pane"><h2><i class="bi bi-shield-check"></i>Evidence stays intact</h2>
+          <ul class="tick-list">
+            <li>Originals are copied read-only and never modified.</li>
+            <li>SHA-256 is recorded at intake. Use <em>Verify integrity</em> to re-check at any time.</li>
+            <li>Every step is written to the chain-of-custody log.</li>
+            <li>All analysis runs on your own computer. Nothing is sent anywhere.</li>
+          </ul></div>
+      </div>
+      <div class="col-lg-4">
+        <div class="pane"><h2><i class="bi bi-exclamation-diamond"></i>Good to know</h2>
+          <ul class="tick-list warn">
+            <li>Times without a time zone are treated as UTC.</li>
+            <li>Detection is rule-based: it finds known patterns, not unknown attacks.</li>
+            <li>Thresholds can be tuned in <a href="{{ url_for('main.settings') }}">Detection settings</a>.</li>
+            <li>An academic tool, not court-admissible forensic software.</li>
+          </ul></div>
+      </div>
+      <div class="col-lg-4">
+        <div class="pane"><h2><i class="bi bi-mortarboard"></i>Project</h2>
+          <p class="mb-1"><strong>{{ META.title }}</strong>: {{ META.subtitle }}</p>
+          <p class="mb-1 muted">{{ META.program }}, {{ META.institute }}</p>
+          <p class="mb-0 muted">Created by: {{ META.author }}</p>
+          </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="about-cta">
+    <div><strong>Ready to try it?</strong><span>Open a case and upload your evidence. The case stays blank until you do.</span></div>
+    <a class="btn btn-cyan" href="{{ url_for('main.index') }}"><i class="bi bi-folder-plus me-1"></i>Open a case</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "base.html" %}
+{% block title %}Detection settings{% endblock %}
+{% block content %}
+<div class="page">
+  <h1 class="page-title">Detection settings</h1>
+  <p class="lead-sm mb-4">The five detectors are plain rules with thresholds you can read and change. Saving re-analyses every case.</p>
+  <form method="post" class="pane">
+    <div class="row g-3">
+      {% for key, label, default, typ, help in defs %}
+      <div class="{{ 'col-12' if typ == 'list' else 'col-md-6 col-lg-4' }}">
+        <label class="form-label" for="{{ key }}">{{ label }}</label>
+        {% if typ == 'list' %}<textarea class="form-control" rows="2" id="{{ key }}" name="{{ key }}">{{ raw[key] }}</textarea>
+        {% else %}<input class="form-control" id="{{ key }}" name="{{ key }}" value="{{ raw[key] }}" inputmode="numeric">{% endif %}
+        <div class="form-text">{{ help }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-cyan">Save and re-analyse</button>
+      <button class="btn btn-ghost" name="reset" value="1" onclick="return confirm('Reset every threshold to its default?');">Reset to defaults</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

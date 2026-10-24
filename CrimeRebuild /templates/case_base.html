@@ -1,0 +1,30 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "base.html" %}
+{% block case_header %}
+<section class="case-head">
+  <div class="wrap">
+    <div class="d-flex flex-wrap align-items-start gap-3">
+      <div class="me-auto">
+        <h1 class="case-title">{{ case['name'] }}</h1>
+        <div class="case-meta">
+          <span><i class="bi bi-folder2-open"></i>Case #{{ case['id'] }}</span>
+          <span><i class="bi bi-person-badge"></i>{{ case['investigator'] or 'Investigator not recorded' }}</span>
+          <span><i class="bi bi-calendar3"></i>Opened {{ case['created_at'] }}</span>
+        </div>
+      </div>
+      <div class="d-flex gap-2 pt-1">
+        <form method="post" action="{{ url_for('main.reanalyze', case_id=case['id']) }}">
+          <button class="btn btn-ghost btn-sm" title="Rebuild the timeline and re-run all detection rules"><i class="bi bi-arrow-repeat me-1"></i>Re-run analysis</button>
+        </form>
+        <a class="btn btn-cyan btn-sm" href="{{ url_for('main.report_pdf', case_id=case['id']) }}"><i class="bi bi-file-earmark-pdf me-1"></i>Forensic report (PDF)</a>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Case sections">
+      <a href="{{ url_for('main.dashboard', case_id=case['id']) }}" class="{{ 'active' if active == 'dashboard' }}"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
+      <a href="{{ url_for('main.timeline_page', case_id=case['id']) }}" class="{{ 'active' if active == 'timeline' }}"><i class="bi bi-clock-history me-1"></i>Timeline<span class="count">{{ '{:,}'.format(b['df']|length) }}</span></a>
+      <a href="{{ url_for('main.alerts_page', case_id=case['id']) }}" class="{{ 'active' if active == 'alerts' }}"><i class="bi bi-exclamation-triangle me-1"></i>Alerts<span class="count">{{ b['alerts']|length }}</span></a>
+      <a href="{{ url_for('main.evidence_page', case_id=case['id']) }}" class="{{ 'active' if active == 'evidence' }}"><i class="bi bi-hdd-stack me-1"></i>Evidence<span class="count">{{ b['evidence']|length }}</span></a>
+    </nav>
+  </div>
+</section>
+{% endblock %}

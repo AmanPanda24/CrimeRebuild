@@ -1,0 +1,71 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "case_base.html" %}
+{% from "_macros.html" import src %}
+{% block title %}Evidence - {{ case['name'] }}{% endblock %}
+{% block content %}
+<div class="page pt-3">
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="pane">
+        <h2><i class="bi bi-cloud-upload"></i>Upload evidence</h2>
+        <form method="post" enctype="multipart/form-data" class="vstack gap-3">
+          <div><label class="form-label" for="files">Evidence files</label>
+            <input class="form-control" type="file" id="files" name="files" multiple required>
+            <div class="form-text">Any mix of formats at once: a ZIP (it is unpacked), CSV / TSV / Excel / JSON exports, Windows .evtx logs, Chrome / Edge / Firefox history, Autopsy autopsy.db, or FTK Imager / Autopsy file lists. Everything is converted to JSON, then analysed.</div></div>
+          <div class="row g-2">
+            <div class="col-sm-7"><label class="form-label" for="kind">Evidence type</label>
+              <select class="form-select" id="kind" name="kind">{% for v, label in KIND_CHOICES %}<option value="{{ v }}">{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-sm-5"><label class="form-label" for="since">Last N days only</label>
+              <input class="form-control" id="since" name="since_days" inputmode="numeric" placeholder="all"></div>
+          </div>
+          <div><label class="form-label" for="du">Account for records without one</label>
+            <input class="form-control" id="du" name="default_user" placeholder="e.g. the owner of the browser profile">
+            <div class="form-text">Browser history has no account name, so enter whose profile it is.</div></div>
+          <button class="btn btn-cyan align-self-start"><i class="bi bi-upload me-1"></i>Preserve, parse and analyse</button>
+        </form>
+      </div>
+      <div class="pane mt-3">
+        <h2><i class="bi bi-pc-display"></i>Collect from this machine</h2>
+        {% if can_collect %}
+        <p class="muted">Reads event logs, USB history, Recycle Bin, Recent Items, sessions and browser history from this computer. Run as Administrator for the full picture. Only use on machines you are authorised to examine.</p>
+        <form method="post" action="{{ url_for('main.collect_live', case_id=case['id']) }}" class="d-flex gap-2 align-items-end">
+          <div><label class="form-label" for="days">Look back (days)</label><input class="form-control" id="days" name="days" value="14" style="width:7rem"></div>
+          <button class="btn btn-cyan">Collect evidence</button>
+        </form>
+        {% else %}
+        <p class="muted mb-0">Live collection uses Windows APIs (pywin32, registry) and is available when CrimeRebuild runs on Windows. On other systems, upload the files exported from your forensic tools (ZIP, CSV, Excel, JSON, .evtx, SQLite).</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="pane">
+        <h2><i class="bi bi-hdd-stack"></i>Evidence log
+          <small><form method="post" action="{{ url_for('main.verify', case_id=case['id']) }}" class="d-inline"><button class="btn btn-ghost btn-sm"><i class="bi bi-shield-check me-1"></i>Verify integrity</button></form></small></h2>
+        {% if b['evidence'] %}
+        <div class="table-responsive">
+        <table class="table table-dark-lite">
+          <thead><tr><th>File</th><th>Type</th><th>Events</th><th>SHA-256</th>{% if verification %}<th>Integrity</th>{% endif %}</tr></thead>
+          <tbody>{% for e in b['evidence'] %}
+            <tr><td>{{ e['filename'] }}<div class="form-text">{{ e['origin'] }} &middot; {{ e['added_at'] }} &middot; {{ '{:,}'.format(e['size']) }} bytes</div>
+                {% if e['status'] == 'failed' %}<div class="bad small">{{ e['note'] }}</div>{% endif %}</td>
+                <td>{% if e['kind'] %}{{ src(SOURCES.get(e['kind'], e['kind'])) }}{% else %}<span class="muted">not parsed</span>{% endif %}</td>
+                <td>{{ '{:,}'.format(e['rows_parsed']) }}{% if e['rows_skipped'] %}<div class="form-text">{{ e['rows_skipped'] }} skipped</div>{% endif %}</td>
+                <td><span class="hash" title="{{ e['sha256'] }}">{{ e['sha256'][:16] }}&hellip;</span></td>
+                {% if verification %}<td>{% set v = verification.get(e['id']) %}{% if v and v.status == 'OK' %}<span class="ok"><i class="bi bi-check-circle-fill me-1"></i>Intact</span>{% else %}<span class="bad">{{ v.status if v else '?' }}</span>{% endif %}</td>{% endif %}
+            </tr>{% endfor %}
+          </tbody>
+        </table></div>
+        {% else %}<p class="muted mb-0">No evidence has been added to this case yet.</p>{% endif %}
+        <div class="form-text mt-2">Each file is copied into the case folder, hashed before and after the copy, and made read-only. Analysis never touches your originals.</div>
+      </div>
+      <div class="pane mt-3">
+        <h2><i class="bi bi-journal-check"></i>Chain of custody</h2>
+        <div class="custody">
+          {% for c in custody %}<div><span class="t">{{ c['ts'] }}</span> &nbsp;<strong>{{ c['action'] }}</strong> <span class="muted">({{ c['actor'] }})</span><br><span class="muted">{{ c['detail'] }}</span></div>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

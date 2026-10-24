@@ -1,0 +1,66 @@
+{# Created by: Aman Kumar Panda #}
+{% extends "base.html" %}
+{% from "_macros.html" import risk_chip %}
+{% block title %}Cases{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Rebuild what happened on a machine, in order.</h1>
+  <p>CrimeRebuild merges event logs, browser history, USB records, file activity and logins into one timeline, flags suspicious patterns and writes the forensic report.</p>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="pane">
+      <h2><i class="bi bi-folder-plus"></i>Open a new case</h2>
+      <form method="post" action="{{ url_for('main.new_case') }}" class="vstack gap-3">
+        <div><label class="form-label" for="name">Case name</label>
+          <input class="form-control" id="name" name="name" required placeholder="e.g. Finance workstation, 14 Sep"></div>
+        <div><label class="form-label" for="inv">Investigator</label>
+          <input class="form-control" id="inv" name="investigator" placeholder="Your name"></div>
+        <div><label class="form-label" for="desc">Notes</label>
+          <textarea class="form-control" id="desc" name="description" rows="2" placeholder="What is being investigated?"></textarea></div>
+        <button class="btn btn-cyan align-self-start">Create case and add evidence</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="pane">
+      <h2><i class="bi bi-signpost-split"></i>How to start<small>three steps</small></h2>
+      <ol class="start-steps">
+        <li><span>1</span><div><strong>Open a case</strong>Give it a name. The case starts completely empty.</div></li>
+        <li><span>2</span><div><strong>Upload your evidence</strong>One ZIP, or any mix of CSV, Excel, JSON, .evtx, browser history and FTK Imager / Autopsy exports.</div></li>
+        <li><span>3</span><div><strong>Read the reconstruction</strong>Every file is converted to JSON, merged into one timeline and checked for suspicious activity.</div></li>
+      </ol>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('main.about') }}"><i class="bi bi-diagram-3 me-1"></i>See how it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="pane mb-5">
+  <h2><i class="bi bi-collection"></i>Cases</h2>
+  {% if cases %}
+  <div class="table-responsive">
+  <table class="table table-dark-lite align-middle">
+    <thead><tr><th>Case</th><th>Evidence</th><th>Events</th><th>Alerts</th><th>Risk</th><th>Opened</th><th></th></tr></thead>
+    <tbody>
+    {% for c in cases %}
+      <tr>
+        <td><a class="fw-semibold" href="{{ url_for('main.dashboard', case_id=c['id']) }}">{{ c['name'] }}</a>
+</td>
+        <td>{{ c['n_evidence'] }}</td><td>{{ '{:,}'.format(c['n_events']) }}</td><td>{{ c['n_alerts'] }}</td>
+        <td>{% if c['n_events'] %}{{ risk_chip(c['risk_level']) }} <span class="muted ms-1">{{ c['risk_score'] }}/100</span>{% else %}<span class="muted">no evidence</span>{% endif %}</td>
+        <td class="muted">{{ c['created_at'] }}</td>
+        <td class="text-end">
+          <form method="post" action="{{ url_for('main.delete_case', case_id=c['id']) }}" onsubmit="return confirm('Delete this case and its evidence copies?');">
+            <button class="btn btn-ghost btn-sm" aria-label="Delete case"><i class="bi bi-trash3"></i></button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="muted mb-0">No cases yet. Open one above and upload your evidence to begin.</p>
+  {% endif %}
+</div>
+{% endblock %}

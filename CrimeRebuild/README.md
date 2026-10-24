@@ -1,7 +1,7 @@
 # 🔎 CrimeRebuild
 
-> Digital Crime Scene Reconstruction System
-> Collect. Correlate. Reconstruct.
+> Digital Crime Scene Reconstruction System<br>
+>  Collect ➡️ Correlate ➡️ Reconstruct.
 
 **Created by: Aman Kumar Panda**
 
@@ -25,7 +25,7 @@ CrimeRebuild rebuilds the timeline of a cyber incident from scattered digital ev
 history, USB records, file activity and login records** into **one chronological timeline**, flags **five kinds of
 suspicious behaviour**, scores the risk, and exports a **PDF forensic report** with hashes and chain of custody.
 
-*MCA (Cybersecurity & Forensics Science) Minor Project 2025-26 · Parul University*
+
 
 ---
 
@@ -409,7 +409,7 @@ ATT&CK reference in `RULE_INFO` in `crimerebuild/constants.py`. To support a new
 ## 👨‍💻 Author
 
 **Created by: Aman Kumar Panda**
-MCA (Cybersecurity & Forensics Science) · Parul University
+MCA (Cybersecurity & Forensics Science) 
 GitHub: [@AmanPanda24](https://github.com/AmanPanda24)
 
 ---
@@ -420,4 +420,4 @@ MIT License. Copyright (c) 2026 Aman Kumar Panda. See [LICENSE](LICENSE) for det
 
 ---
 
-<p align="center"><b>CrimeRebuild</b> · Created by: Aman Kumar Panda</p>
+<p align="center"><b>CrimeRebuild</b> Created by: Aman Kumar Panda</p>
